@@ -21,7 +21,7 @@ The `.dat` file used by the mod contains:
 - Allows you to manually add new UIDs
 - Import UIDs from another `.dat`
 - Export data to `.json`
-- 
+
 ---
 
 ## Exploit
