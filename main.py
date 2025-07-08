@@ -4,31 +4,31 @@ from typing import BinaryIO, List, Dict, Any
 
 int32: int = 4
 
-class Uid:
+class Guid:
     def __init__(self, value: str):
         self.value: str = value
 
     @staticmethod
-    def deserialize(file: BinaryIO) -> 'Uid':
-        """Deserialize a UID from binary file"""
+    def deserialize(file: BinaryIO) -> 'Guid':
+        """Deserialize a GUID from binary file"""
         size_bytes = file.read(int32)
         if len(size_bytes) < int32:
-            raise ValueError("Invalid UID format - missing size")
+            raise ValueError("Invalid GUID format - missing size")
         
         size = struct.unpack('<i', size_bytes)[0]
         
-        uid_bytes = file.read(size)
-        if len(uid_bytes) < size:
-            raise ValueError("Invalid UID format - data too short")
+        guid_bytes = file.read(size)
+        if len(guid_bytes) < size:
+            raise ValueError("Invalid GUID format - data too short")
         
-        return Uid(uid_bytes.decode('utf-8'))
+        return Guid(guid_bytes.decode('utf-8'))
 
 class Dat:
     def __init__(self, path: str):
         self.path = path
         self.file: BinaryIO = None
-        self.uid_count: int = 0
-        self.uids: List[Uid] = []
+        self.guid_count: int = 0
+        self.guids: List[Guid] = []
         
         try:
             self.file = open(self.path, 'r+b')
@@ -43,34 +43,34 @@ class Dat:
     def __enter__(self):
         return self
 
-    def _read_header(self) -> bytes:
+    def __read_header(self) -> bytes:
         """Read and return the header (count bytes)"""
         self.file.seek(0)
         return self.file.read(int32)
 
     def __deserialize(self):
         """Load all UIDs from file"""
-        count_bytes = self._read_header()
+        count_bytes = self.__read_header()
         if len(count_bytes) < int32:
             raise ValueError("Invalid .dat file - missing UID count")
         
-        self.uid_count = struct.unpack('<i', count_bytes)[0]
-        self.uids = []
+        self.guid_count = struct.unpack('<i', count_bytes)[0]
+        self.guids = []
         
-        for _ in range(self.uid_count):
-            self.uids.append(Uid.deserialize(self.file))
+        for _ in range(self.guid_count):
+            self.guids.append(Guid.deserialize(self.file))
 
     def dump(self) -> Dict[str, Any]:
         """Return data as dictionary"""
         return {
-            "uid_count": self.uid_count,
-            "uids": [uid.value for uid in self.uids]
+            "guid_count": self.guid_count,
+            "guids": [guid.value for guid in self.guids]
         }
 
-    def append(self, new_uid: str) -> bool:
+    def append(self, new_guid: str) -> bool:
         """Append a new UID to the file"""
 
-        if new_uid in [uid.value for uid in self.uids]:
+        if new_guid in [guid.value for guid in self.guids]:
             return False
 
         self.file.seek(0)
@@ -79,9 +79,9 @@ class Dat:
         
         self.file.seek(0, 2)
         
-        uid_bytes = new_uid.encode('utf-8')
-        self.file.write(struct.pack('<i', len(uid_bytes)))
-        self.file.write(uid_bytes)
+        guid_bytes = new_guid.encode('utf-8')
+        self.file.write(struct.pack('<i', len(guid_bytes)))
+        self.file.write(guid_bytes)
         
         self.file.seek(0)
         self.file.write(struct.pack('<i', count + 1))
@@ -118,10 +118,10 @@ def main():
 
                 print("\033[1;31mChanges to parties are made automatically, but the game must be restarted to load them. Don't forget to turn off TerjeExp after making changes. If it is open, this will prevent DayZ from opening your .dat, since it is being used in another process.\n\033[0m")
 
-                print(f"You have in your .dat {dat.uid_count} parties\n")
+                print(f"You have in your .dat {dat.guid_count} parties\n")
                 
                 print("1: Dump party data to JSON")
-                print("2: Add UID to .dat file")
+                print("2: Add GUID to .dat file")
                 print("3: Import parties from another .dat file")
                 print("4: Exit\n")
                 
@@ -136,24 +136,24 @@ def main():
                         input("Press Enter to continue...")
                     case '2':
                         header()
-                        uid = input("Enter UID to add: ")
-                        response = dat.append(uid)
+                        guid = input("Enter GUID to add: ")
+                        response = dat.append(guid)
                         if response:
-                            print("UID added successfully")
+                            print("GUID added successfully")
                         else:
-                            print("UID is already in the party")
+                            print("GUID is already in the party")
                         input("Press Enter to continue...")
                     case '3':
                         header()
                         import_path = input("TerjePartyMod .dat file path: ")
                         try:
                             with Dat(import_path) as import_dat:
-                                for uid in import_dat.uids:
-                                    response = dat.append(uid.value)
+                                for guid in import_dat.guids:
+                                    response = dat.append(guid.value)
                                     if response:
-                                        print("UID added successfully")
+                                        print("GUID added successfully")
                                     else:
-                                        print("UID is already in the party")
+                                        print("GUID is already in the party")
                                 
                                 input("Press Enter to continue...")
                         except Exception as e:
