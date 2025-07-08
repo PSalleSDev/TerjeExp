@@ -1,6 +1,6 @@
 # TerjeExp
 
-Tool for reading, editing and exporting `.dat` files used by **TerjePartyMod** in DayZ. Allows testing and modifying party UIDs.
+Tool for reading, editing and exporting `.dat` files used by [**TerjePartyMod**](https://github.com/TerjeBruoygard/TerjePartyMod) in DayZ. Allows testing and modifying party UIDs.
 
 ---
 
@@ -8,9 +8,8 @@ Tool for reading, editing and exporting `.dat` files used by **TerjePartyMod** i
 
 The `.dat` file used by the mod contains:
 
-- **Header (4 bytes)**: total number of UIDs (32-bit integer, little-endian).
-- **UIDs**:
-- Each UID starts with an integer (4 bytes) below the length of the string.
+- Header (4 bytes): Total number of UIDs (32-bit integer, little-endian).
+- UID: Each starts with an integer (4 bytes) below the length of the string.
 - Then the bytes of the UTF-8 string.
 
 ---
