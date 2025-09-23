@@ -1,5 +1,7 @@
 import json
 import struct
+import base64
+import hashlib
 from typing import BinaryIO, List, Dict, Any
 
 int32: int = 4
@@ -14,32 +16,32 @@ class Guid:
         size_bytes = file.read(int32)
         if len(size_bytes) < int32:
             raise ValueError("Invalid GUID format - missing size")
-        
+
         size = struct.unpack('<i', size_bytes)[0]
-        
+
         guid_bytes = file.read(size)
         if len(guid_bytes) < size:
             raise ValueError("Invalid GUID format - data too short")
-        
+
         return Guid(guid_bytes.decode('utf-8'))
 
 class Dat:
     def __init__(self, path: str):
         self.path = path
-        self.file: BinaryIO = None
+        self.file: BinaryIO
         self.guid_count: int = 0
         self.guids: List[Guid] = []
-        
+
         try:
             self.file = open(self.path, 'r+b')
         except Exception as e:
             raise RuntimeError(f"Failed to open file: {str(e)}")
-        
+
         try:
             self.__deserialize()
         except Exception as e:
             raise RuntimeError(f"Failed to deserialize file: {str(e)}")
-        
+
     def __enter__(self):
         return self
 
@@ -53,10 +55,10 @@ class Dat:
         count_bytes = self.__read_header()
         if len(count_bytes) < int32:
             raise ValueError("Invalid .dat file - missing UID count")
-        
+
         self.guid_count = struct.unpack('<i', count_bytes)[0]
         self.guids = []
-        
+
         for _ in range(self.guid_count):
             self.guids.append(Guid.deserialize(self.file))
 
@@ -76,16 +78,16 @@ class Dat:
         self.file.seek(0)
         count_bytes = self.file.read(int32)
         count = struct.unpack('<i', count_bytes)[0]
-        
+
         self.file.seek(0, 2)
-        
+
         guid_bytes = new_guid.encode('utf-8')
         self.file.write(struct.pack('<i', len(guid_bytes)))
         self.file.write(guid_bytes)
-        
+
         self.file.seek(0)
         self.file.write(struct.pack('<i', count + 1))
-        
+
         self.__deserialize()
 
         return True
@@ -110,7 +112,7 @@ def main():
     header()
     path = input("TerjePartyMod .dat file path: ")
     output_path = "PartyData.json"
-    
+
     try:
         with Dat(path) as dat:
             while True:
@@ -119,14 +121,14 @@ def main():
                 print("\033[1;31mChanges to parties are made automatically, but the game must be restarted to load them. Don't forget to turn off TerjeExp after making changes. If it is open, this will prevent DayZ from opening your .dat, since it is being used in another process.\n\033[0m")
 
                 print(f"You have in your .dat {dat.guid_count} parties\n")
-                
+
                 print("1: Dump party data to JSON")
-                print("2: Add GUID to .dat file")
+                print("2: Add GUID (Steam ID) to .dat file")
                 print("3: Import parties from another .dat file")
                 print("4: Exit\n")
-                
+
                 option = input("Select option: ")
-                
+
                 match option:
                     case '1':
                         header()
@@ -136,7 +138,7 @@ def main():
                         input("Press Enter to continue...")
                     case '2':
                         header()
-                        guid = input("Enter GUID to add: ")
+                        guid = base64.urlsafe_b64encode(hashlib.sha256(input("Enter GUID to add: ").encode("utf-8")).digest()).decode("utf-8")
                         response = dat.append(guid)
                         if response:
                             print("GUID added successfully")
@@ -154,7 +156,7 @@ def main():
                                         print("GUID added successfully")
                                     else:
                                         print("GUID is already in the party")
-                                
+
                                 input("Press Enter to continue...")
                         except Exception as e:
                             print(f"Error: {e}")
