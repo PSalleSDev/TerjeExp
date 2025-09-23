@@ -54,7 +54,7 @@ class Dat:
         """Load all UIDs from file"""
         count_bytes = self.__read_header()
         if len(count_bytes) < int32:
-            raise ValueError("Invalid .dat file - missing UID count")
+            raise ValueError("Invalid .dat file - missing GUID count")
 
         self.guid_count = struct.unpack('<i', count_bytes)[0]
         self.guids = []
